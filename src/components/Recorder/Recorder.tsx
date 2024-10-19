@@ -10,39 +10,19 @@ import { PiArrowElbowLeftDownDuotone } from "react-icons/pi";
 import { AnimatePresence, motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
-import { useFormik } from "formik";
 
 const Recorder = () => {
   const { theme } = useTheme();
-  const [response, setResponse] = React.useState<{
-    sentiment: string;
-    success: boolean;
-    message: string;
-  }>();
-  const formik = useFormik({
-    initialValues: {
-      file: {} as Blob,
-    },
-    onSubmit: (values) => {
-      setLoading(true);
-      const formData = new FormData();
-      formData.append("file", values.file, "recording.wav");
-      fetch("https://00f3-105-179-6-14.ngrok-free.app/predict", {
-        method: "POST",
-        body: formData,
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setResponse(data);
-        })
-        .catch(() => toast.error("An error occured"));
-    },
-  });
   const [dimensions, setDimensions] = React.useState({
     width: 500,
     height: 75,
   });
   const [isLoading, setLoading] = React.useState(false);
+  const [response, setResponse] = React.useState<{
+    sentiment: string;
+    success: boolean;
+    message: string;
+  }>();
   const inputRef = React.useRef<HTMLInputElement>(null);
   const {
     startRecording,
@@ -76,13 +56,15 @@ const Recorder = () => {
      */
     if (recordingBlob) {
       file = recordingBlob;
+    } else if (inputRef.current?.files) {
+      file = inputRef.current.files[0];
     }
 
     if (file) {
       setLoading(true);
       const formData = new FormData();
       formData.append("file", file, "recording.wav");
-      fetch("https://00f3-105-179-6-14.ngrok-free.app/predict", {
+      fetch("https://e08a-105-179-6-14.ngrok-free.app/predict", {
         method: "POST",
         body: formData,
       })
@@ -90,7 +72,10 @@ const Recorder = () => {
         .then((data) => {
           setResponse(data);
         })
-        .catch(() => toast.error("An error occured"));
+        .catch(() => toast.error("An error occured"))
+        .finally(() => {
+          setLoading(false);
+        });
     }
   };
 
@@ -105,22 +90,22 @@ const Recorder = () => {
             transition={{
               type: "spring",
             }}
-            className="bg-white p-6 border mx-0 shadow-lg mb-10 rounded-2xl"
+            className="bg-white p-6 border border-content1 mx-0 shadow-lg mb-10 rounded-2xl"
           >
-            <p className="text-default-600">
+            <p className="text-default-500">
               Below is the result from response the robust {"model's"}{" "}
               predictions from the model based on the provided audio input.
             </p>
 
             <div className="mt-3 flex items-center gap-5">
-              <PiArrowElbowLeftDownDuotone />
+              <PiArrowElbowLeftDownDuotone className="" />
               <div>
                 <p
                   className={`font-bold ${
                     response.sentiment === "negative"
                       ? "text-red-600"
                       : "text-green"
-                  } text-lg`}
+                  } text-lg capitalize`}
                 >
                   {response.sentiment}
                 </p>
@@ -152,10 +137,8 @@ const Recorder = () => {
         ) : (
           <Input
             type="file"
-            name="file"
             ref={inputRef}
             accept="audio/*"
-            onChange={formik.handleChange}
             className="text-default-100"
             placeholder="Upload or record an audio here ..."
             endContent={
